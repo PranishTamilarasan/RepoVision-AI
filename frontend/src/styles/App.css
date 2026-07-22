@@ -1,0 +1,423 @@
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  background: #f5f7fa;
+  color: #1a1a2e;
+  line-height: 1.6;
+}
+
+.app {
+  min-height: 100vh;
+  padding: 20px;
+}
+
+/* Container */
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Header */
+.header {
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  margin-bottom: 30px;
+}
+
+.header h1 {
+  font-size: 28px;
+  color: #1a1a2e;
+  margin-bottom: 8px;
+}
+
+.header p {
+  color: #666;
+  font-size: 16px;
+}
+
+.header .status {
+  margin-top: 12px;
+  font-size: 14px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  display: inline-block;
+}
+
+.status-online {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-offline {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.status-checking {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+/* Scan Form */
+.scan-form {
+  background: white;
+  padding: 25px 30px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  margin-bottom: 30px;
+}
+
+.scan-form form {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.scan-form input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 16px;
+  min-width: 200px;
+  transition: border-color 0.2s;
+}
+
+.scan-form input:focus {
+  outline: none;
+  border-color: #4a90d9;
+}
+
+.scan-form button {
+  padding: 12px 32px;
+  background: #4a90d9;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.scan-form button:hover:not(:disabled) {
+  background: #357abd;
+}
+
+.scan-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.scan-form .error {
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: #ffebee;
+  color: #c62828;
+  border-radius: 8px;
+  border: 1px solid #ffcdd2;
+}
+
+/* Progress */
+.progress {
+  background: white;
+  padding: 25px 30px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e0e0e0;
+  border-top: 3px solid #4a90d9;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.progress .info {
+  flex: 1;
+}
+
+.progress .info .label {
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.progress .status-badge {
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.status-queued {
+  background: #e0e0e0;
+  color: #424242;
+}
+
+.status-cloning {
+  background: #bbdefb;
+  color: #0d47a1;
+}
+
+.status-analyzing {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+/* Results */
+.results {
+  margin-top: 30px;
+}
+
+/* Summary Card */
+.summary {
+  background: white;
+  padding: 25px 30px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  margin-bottom: 30px;
+}
+
+.summary h2 {
+  font-size: 20px;
+  margin-bottom: 20px;
+  color: #1a1a2e;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.summary-item {
+  text-align: center;
+  padding: 16px;
+  border-radius: 10px;
+  background: #f8f9fa;
+}
+
+.summary-item .number {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.summary-item .label {
+  font-size: 14px;
+  color: #666;
+  margin-top: 4px;
+}
+
+.summary-item.total .number {
+  color: #1a1a2e;
+}
+
+.summary-item.high .number {
+  color: #d32f2f;
+}
+
+.summary-item.high {
+  background: #ffebee;
+}
+
+.summary-item.medium .number {
+  color: #f57c00;
+}
+
+.summary-item.medium {
+  background: #fff3e0;
+}
+
+.summary-item.low .number {
+  color: #388e3c;
+}
+
+.summary-item.low {
+  background: #e8f5e9;
+}
+
+.summary .meta {
+  font-size: 14px;
+  color: #888;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+/* Issues List */
+.issues-list {
+  background: white;
+  padding: 25px 30px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.issues-list h2 {
+  font-size: 20px;
+  margin-bottom: 20px;
+  color: #1a1a2e;
+}
+
+.issue-item {
+  padding: 16px 18px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  border: 1px solid #e0e0e0;
+}
+
+.issue-item:last-child {
+  margin-bottom: 0;
+}
+
+.issue-item.high {
+  background: #ffebee;
+  border-color: #ffcdd2;
+}
+
+.issue-item.medium {
+  background: #fff3e0;
+  border-color: #ffe0b2;
+}
+
+.issue-item.low {
+  background: #e8f5e9;
+  border-color: #c8e6c9;
+}
+
+.issue-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.severity-badge {
+  padding: 2px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.severity-high {
+  background: #d32f2f;
+  color: white;
+}
+
+.severity-medium {
+  background: #f57c00;
+  color: white;
+}
+
+.severity-low {
+  background: #388e3c;
+  color: white;
+}
+
+.issue-line {
+  font-size: 13px;
+  color: #666;
+}
+
+.issue-category {
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.08);
+  padding: 2px 10px;
+  border-radius: 12px;
+  color: #555;
+}
+
+.issue-message {
+  font-size: 15px;
+  color: #1a1a2e;
+}
+
+.issue-snippet {
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: #1e1e2e;
+  color: #d4d4d4;
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.no-issues {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+  font-size: 18px;
+}
+
+.no-issues .emoji {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+/* Error State */
+.error-state {
+  background: #ffebee;
+  border: 1px solid #ffcdd2;
+  padding: 25px 30px;
+  border-radius: 12px;
+}
+
+.error-state h2 {
+  color: #c62828;
+  margin-bottom: 8px;
+}
+
+.error-state p {
+  color: #b71c1c;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .header h1 {
+    font-size: 22px;
+  }
+
+  .scan-form form {
+    flex-direction: column;
+  }
+
+  .scan-form input {
+    min-width: auto;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .issue-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
