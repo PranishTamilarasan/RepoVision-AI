@@ -1,42 +1,73 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useScan } from '../hooks/useScan';
 import { SeverityBadge } from '../components/SeverityBadge';
 import { StatusBadge } from '../components/StatusBadge';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import { checkHealth } from '../api/client';
+import { checkHealth, listScans } from '../api/client';
+
+const SEVERITY_FILTERS = ['all', 'high', 'medium', 'low'];
 
 export const Home = () => {
   const [repoUrl, setRepoUrl] = useState('');
   const [backendStatus, setBackendStatus] = useState('checking');
+  const [recentScans, setRecentScans] = useState([]);
+  const [severityFilter, setSeverityFilter] = useState('all');
+  const pollIntervalRef = useRef(null);
+
   const { loading, status, results, error, startNewScan, pollResults, reset } = useScan();
 
-  // Check backend health on load
+  const stopPolling = useCallback(() => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  }, []);
+
+  const fetchRecentScans = useCallback(async () => {
+    try {
+      const data = await listScans();
+      setRecentScans(data?.scans || []);
+    } catch {
+      // Backend may be offline; status badge handles visibility
+    }
+  }, []);
+
   useEffect(() => {
     const checkBackend = async () => {
       try {
         await checkHealth();
         setBackendStatus('online');
+        fetchRecentScans();
       } catch {
         setBackendStatus('offline');
       }
     };
     checkBackend();
-  }, []);
+
+    return () => stopPolling();
+  }, [fetchRecentScans, stopPolling]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!repoUrl) return;
+    const trimmedUrl = repoUrl.trim();
+    if (!trimmedUrl) return;
 
+    stopPolling();
     reset();
+    setSeverityFilter('all');
 
     try {
-      const id = await startNewScan(repoUrl);
+      const id = await startNewScan(trimmedUrl);
 
-      // Poll every 2 seconds
-      const interval = setInterval(async () => {
-        const data = await pollResults(id);
-        if (data.status === 'completed' || data.status === 'failed') {
-          clearInterval(interval);
+      pollIntervalRef.current = setInterval(async () => {
+        try {
+          const data = await pollResults(id);
+          if (data.status === 'completed' || data.status === 'failed') {
+            stopPolling();
+            fetchRecentScans();
+          }
+        } catch {
+          stopPolling();
         }
       }, 2000);
     } catch (err) {
@@ -44,10 +75,23 @@ export const Home = () => {
     }
   };
 
-  // Count issues by severity
-  const countBySeverity = (severity) => {
-    return results?.issues?.filter(i => i.severity === severity).length || 0;
+  const handleSelectScan = async (scanId) => {
+    stopPolling();
+    setSeverityFilter('all');
+    try {
+      await pollResults(scanId);
+    } catch (err) {
+      console.error(err);
+    }
   };
+
+  const countBySeverity = (severity) => {
+    return results?.issues?.filter((i) => i.severity === severity).length || 0;
+  };
+
+  const filteredIssues = (results?.issues || []).filter(
+    (issue) => severityFilter === 'all' || issue.severity === severityFilter
+  );
 
   const getStatusClass = () => {
     if (backendStatus === 'online') return 'status-online';
@@ -66,8 +110,13 @@ export const Home = () => {
       <div className="container">
         {/* Header */}
         <header className="header">
-          <h1>🔍 Code Review Platform</h1>
-          <p>Analyze your code for bugs, security issues, and more</p>
+          <div className="nav-brand" style={{ marginBottom: '8px' }}>
+            <div className="rv-logo-mark">RV</div>
+            <h1>RepoVision AI</h1>
+          </div>
+          <p>
+            Automated static code analysis for GitHub repositories — detect bugs, lint issues, and code quality risks across Python, JavaScript, and TypeScript.
+          </p>
           <span className={`status ${getStatusClass()}`}>
             Backend: {getStatusText()}
           </span>
@@ -77,17 +126,18 @@ export const Home = () => {
         <div className="scan-form">
           <form onSubmit={handleSubmit}>
             <input
-              type="text"
-              placeholder="https://github.com/user/repo"
+              type="url"
+              placeholder="https://github.com/owner/repository"
               value={repoUrl}
               onChange={(e) => setRepoUrl(e.target.value)}
               disabled={loading || backendStatus === 'offline'}
+              aria-label="GitHub repository URL"
             />
             <button
               type="submit"
-              disabled={loading || !repoUrl || backendStatus === 'offline'}
+              disabled={loading || !repoUrl.trim() || backendStatus === 'offline'}
             >
-              {loading ? 'Analyzing...' : 'Analyze'}
+              {loading ? 'Analyzing...' : 'Analyze Repository'}
             </button>
           </form>
           {error && (
@@ -97,26 +147,27 @@ export const Home = () => {
           )}
         </div>
 
-        {/* Progress */}
+        {/* In-Progress State */}
         {status && status !== 'completed' && status !== 'failed' && (
           <div className="progress">
+            <div className="spinner" aria-hidden="true" />
             <LoadingSpinner />
             <div className="info">
-              <div className="label">Scan in progress...</div>
+              <div className="label">Scanning repository...</div>
               <StatusBadge status={status} />
             </div>
           </div>
         )}
 
-        {/* Results */}
+        {/* Completed Results */}
         {results?.status === 'completed' && (
           <div className="results">
             {/* Summary */}
             <div className="summary">
-              <h2>📊 Summary</h2>
+              <h2>📊 Scan Summary</h2>
               <div className="summary-grid">
                 <div className="summary-item total">
-                  <div className="number">{results.total_issues}</div>
+                  <div className="number">{results.total_issues ?? 0}</div>
                   <div className="label">Total Issues</div>
                 </div>
                 <div className="summary-item high">
@@ -133,16 +184,42 @@ export const Home = () => {
                 </div>
               </div>
               <div className="meta">
-                Scan ID: {results.scan_id} •
-                Completed: {results.completed_at ? new Date(results.completed_at).toLocaleString() : 'N/A'}
+                Scan ID: #{results.scan_id} • Completed:{' '}
+                {results.completed_at ? new Date(results.completed_at).toLocaleString() : 'N/A'}
               </div>
             </div>
 
             {/* Issues List */}
             <div className="issues-list">
-              <h2>📋 Issues</h2>
-              {results.issues && results.issues.length > 0 ? (
-                results.issues.map((issue, index) => (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '12px',
+                  marginBottom: '20px',
+                }}
+              >
+                <h2 style={{ marginBottom: 0 }}>📋 Detected Issues ({filteredIssues.length})</h2>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {SEVERITY_FILTERS.map((level) => (
+                    <button
+                      key={level}
+                      type="button"
+                      onClick={() => setSeverityFilter(level)}
+                      className={`nav-btn ${
+                        severityFilter === level ? 'nav-btn-primary' : 'nav-btn-ghost'
+                      }`}
+                    >
+                      {level.charAt(0).toUpperCase() + level.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {filteredIssues.length > 0 ? (
+                filteredIssues.map((issue, index) => (
                   <div key={index} className={`issue-item ${issue.severity}`}>
                     <div className="issue-header">
                       <SeverityBadge severity={issue.severity} />
@@ -160,7 +237,9 @@ export const Home = () => {
               ) : (
                 <div className="no-issues">
                   <span className="emoji">🎉</span>
-                  No issues found! Great code!
+                  {results.issues?.length > 0
+                    ? `No ${severityFilter} severity issues found.`
+                    : 'No issues found! Clean repository!'}
                 </div>
               )}
             </div>
@@ -171,10 +250,47 @@ export const Home = () => {
         {results?.status === 'failed' && (
           <div className="error-state">
             <h2>❌ Scan Failed</h2>
-            <p>{results.error || 'Unknown error'}</p>
+            <p>{results.error || 'Unknown error occurred during repository analysis.'}</p>
+          </div>
+        )}
+
+        {/* Recent Scans */}
+        {recentScans.length > 0 && (
+          <div className="issues-list" style={{ marginTop: '30px' }}>
+            <h2>🕒 Recent Scans</h2>
+            {recentScans.slice(0, 10).map((scan) => (
+              <div
+                key={scan.id}
+                className="issue-item"
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '12px',
+                  cursor: 'pointer',
+                }}
+                onClick={() => handleSelectScan(scan.id)}
+              >
+                <div>
+                  <div className="issue-message" style={{ fontWeight: 600 }}>
+                    {scan.repo_url}
+                  </div>
+                  <div className="issue-line">
+                    Scan #{scan.id} • {scan.total_issues ?? 0} issues
+                    {scan.created_at
+                      ? ` • ${new Date(scan.created_at).toLocaleString()}`
+                      : ''}
+                  </div>
+                </div>
+                <StatusBadge status={scan.status} />
+              </div>
+            ))}
           </div>
         )}
       </div>
     </div>
   );
 };
+
+export default Home;
